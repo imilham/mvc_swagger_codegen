@@ -1,6 +1,6 @@
 name: mvc_swagger_codegen
 description: A command-line tool to generate Provider-based MVC architecture and API controllers directly from a Swagger JSON file.
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/imilham/mvc_swagger_codegen
 
 environment:
