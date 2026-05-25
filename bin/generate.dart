@@ -73,9 +73,7 @@ const Map<String, String> customImportPaths = {
 const Set<String> skipGroups = {};
 
 /// Models to SKIP generation for (already implemented manually).
-const Set<String> skipDefinitions = {
-  'Paginator',
-};
+const Set<String> skipDefinitions = {'Paginator'};
 
 /// Maps Swagger definition names to a specific group, overriding dynamic discovery.
 /// This is crucial for models like `User` that belong to `profile` but are referenced everywhere.
@@ -100,7 +98,11 @@ const Map<String, Map<String, List<String>>> flattenedFields = {
 /// Group name (PascalCase) -> List of dependencies {type, name, required}
 const Map<String, List<Map<String, String>>> repoDependencies = {
   'Auth': [
-    {'type': 'IAuthLocalDataSource', 'name': 'localDataSource', 'required': 'true'},
+    {
+      'type': 'IAuthLocalDataSource',
+      'name': 'localDataSource',
+      'required': 'true',
+    },
   ],
 };
 
@@ -125,7 +127,9 @@ const Set<String> _primitiveRefs = {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 void main(List<String> args) async {
-  final swaggerPath = args.isNotEmpty && !args[0].startsWith('-') ? args[0] : 'tools/swagger.json';
+  final swaggerPath = args.isNotEmpty && !args[0].startsWith('-')
+      ? args[0]
+      : 'tools/swagger.json';
   final dryRun = args.contains('--dry-run');
 
   Map<String, dynamic> json;
@@ -157,9 +161,13 @@ void main(List<String> args) async {
   final openApiVersion = json['openapi']?.toString();
 
   if (openApiVersion != null && openApiVersion.startsWith('3.')) {
-    print('\n⚠️  WARNING: OpenAPI 3.x spec detected (version $openApiVersion).');
+    print(
+      '\n⚠️  WARNING: OpenAPI 3.x spec detected (version $openApiVersion).',
+    );
     print('   This generator is currently optimized for Swagger 2.0.');
-    print('   Some complex schemas (allOf/oneOf) may not generate correctly.\n');
+    print(
+      '   Some complex schemas (allOf/oneOf) may not generate correctly.\n',
+    );
   }
 
   final swagger = SwaggerSpec.fromJson(json);
@@ -178,7 +186,11 @@ void main(List<String> args) async {
     _ensureRxDartDependency();
   }
 
-  final generator = CodeGenerator(swagger: swagger, dryRun: dryRun, packageName: packageName);
+  final generator = CodeGenerator(
+    swagger: swagger,
+    dryRun: dryRun,
+    packageName: packageName,
+  );
   generator.run();
 }
 
@@ -222,7 +234,9 @@ Future<String> _fetchSwaggerSpec(String url) async {
     final request = await client.getUrl(Uri.parse(url));
     final response = await request.close();
     if (response.statusCode != 200) {
-      throw HttpException('Failed to fetch spec (Status: ${response.statusCode})');
+      throw HttpException(
+        'Failed to fetch spec (Status: ${response.statusCode})',
+      );
     }
     final content = await response.transform(utf8.decoder).join();
     return content;
@@ -262,8 +276,10 @@ class SwaggerSpec {
 
     final definitions = <String, SwaggerDefinition>{};
     // Support both Swagger 2.0 'definitions' and OpenAPI 3.x 'components/schemas'
-    final defsJson = json['definitions'] as Map<String, dynamic>? ??
-        (json['components'] as Map<String, dynamic>?)?['schemas'] as Map<String, dynamic>? ??
+    final defsJson =
+        json['definitions'] as Map<String, dynamic>? ??
+        (json['components'] as Map<String, dynamic>?)?['schemas']
+            as Map<String, dynamic>? ??
         {};
     for (final entry in defsJson.entries) {
       // Sanitize definition names: strip &, commas, etc.
@@ -318,7 +334,9 @@ class SwaggerOperation {
     final responses = <String, SwaggerResponse>{};
     final responsesJson = json['responses'] as Map<String, dynamic>? ?? {};
     for (final entry in responsesJson.entries) {
-      responses[entry.key] = SwaggerResponse.fromJson(entry.value as Map<String, dynamic>);
+      responses[entry.key] = SwaggerResponse.fromJson(
+        entry.value as Map<String, dynamic>,
+      );
     }
 
     final security = <Map<String, List<String>>>[];
@@ -334,9 +352,16 @@ class SwaggerOperation {
     return SwaggerOperation(
       path: path,
       method: method,
-      tags: (json['tags'] as List<dynamic>?)?.map((t) => _sanitizeForIdentifier(t as String)).toList() ?? [],
+      tags:
+          (json['tags'] as List<dynamic>?)
+              ?.map((t) => _sanitizeForIdentifier(t as String))
+              .toList() ??
+          [],
       summary: json['summary'] as String? ?? '',
-      operationId: (json['operationId'] as String? ?? '').replaceAll(RegExp('[^a-zA-Z0-9_]'), ''), // strip &, commas, etc.
+      operationId: (json['operationId'] as String? ?? '').replaceAll(
+        RegExp('[^a-zA-Z0-9_]'),
+        '',
+      ), // strip &, commas, etc.
       description: json['description'] as String? ?? '',
       parameters: params,
       responses: responses,
@@ -358,11 +383,14 @@ class SwaggerOperation {
 
   bool get requiresAuth => security.any((s) => s.containsKey('accessToken'));
 
-  List<SwaggerParameter> get queryParams => parameters.where((p) => p.location == 'query').toList();
+  List<SwaggerParameter> get queryParams =>
+      parameters.where((p) => p.location == 'query').toList();
 
-  List<SwaggerParameter> get formParams => parameters.where((p) => p.location == 'formData').toList();
+  List<SwaggerParameter> get formParams =>
+      parameters.where((p) => p.location == 'formData').toList();
 
-  List<SwaggerParameter> get pathParams => parameters.where((p) => p.location == 'path').toList();
+  List<SwaggerParameter> get pathParams =>
+      parameters.where((p) => p.location == 'path').toList();
 
   String? get successResponseRef {
     final r = responses['200'] ?? responses['201'] ?? responses['204'];
@@ -391,7 +419,11 @@ class SwaggerParameter {
     String? schemaRef;
     if (json['schema'] != null) {
       schemaRef = (json['schema'] as Map<String, dynamic>)[r'$ref'] as String?;
-      if (schemaRef != null) schemaRef = schemaRef.split('/').last.replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
+      if (schemaRef != null)
+        schemaRef = schemaRef
+            .split('/')
+            .last
+            .replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
     }
     return SwaggerParameter(
       name: json['name'] as String? ?? '',
@@ -436,9 +468,13 @@ class SwaggerResponse {
     if (json['schema'] != null) {
       final schema = json['schema'] as Map<String, dynamic>;
       ref = schema[r'$ref'] as String?;
-      if (ref != null) ref = ref.split('/').last.replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
+      if (ref != null)
+        ref = ref.split('/').last.replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
     }
-    return SwaggerResponse(schemaRef: ref, description: json['description'] as String?);
+    return SwaggerResponse(
+      schemaRef: ref,
+      description: json['description'] as String?,
+    );
   }
 
   final String? schemaRef;
@@ -452,7 +488,10 @@ class SwaggerDefinition {
     final props = <String, SwaggerProperty>{};
     final propsJson = json['properties'] as Map<String, dynamic>? ?? {};
     for (final entry in propsJson.entries) {
-      props[entry.key] = SwaggerProperty.fromJson(entry.key, entry.value as Map<String, dynamic>);
+      props[entry.key] = SwaggerProperty.fromJson(
+        entry.key,
+        entry.value as Map<String, dynamic>,
+      );
     }
     return SwaggerDefinition(name: name, properties: props);
   }
@@ -472,7 +511,17 @@ class SwaggerDefinition {
     final hasPayload = properties.containsKey('payload');
 
     // If it's the schema for a 200/201 response and only has wrapper-like fields
-    final allowedFields = {'result', 'message', 'data', 'payload', 'paginator', 'errors', 'status_code', 'token', 'success'};
+    final allowedFields = {
+      'result',
+      'message',
+      'data',
+      'payload',
+      'paginator',
+      'errors',
+      'status_code',
+      'token',
+      'success',
+    };
     for (final propName in properties.keys) {
       if (!allowedFields.contains(propName)) {
         return false;
@@ -496,7 +545,8 @@ class SwaggerProperty {
 
   factory SwaggerProperty.fromJson(String name, Map<String, dynamic> json) {
     var ref = json[r'$ref'] as String?;
-    if (ref != null) ref = ref.split('/').last.replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
+    if (ref != null)
+      ref = ref.split('/').last.replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
     // Treat primitive $refs (e.g. "string") as plain types, not nested objects
     if (ref != null && _primitiveRefs.contains(ref)) ref = null;
 
@@ -505,7 +555,11 @@ class SwaggerProperty {
     if (json['items'] != null) {
       final items = json['items'] as Map<String, dynamic>;
       itemsRef = items[r'$ref'] as String?;
-      if (itemsRef != null) itemsRef = itemsRef.split('/').last.replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
+      if (itemsRef != null)
+        itemsRef = itemsRef
+            .split('/')
+            .last
+            .replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
       // Treat primitive $refs in array items as plain types
       if (itemsRef != null && _primitiveRefs.contains(itemsRef)) {
         itemsType = itemsRef.toLowerCase();
@@ -518,7 +572,10 @@ class SwaggerProperty {
     if (json['properties'] != null) {
       final propsJson = json['properties'] as Map<String, dynamic>;
       for (final entry in propsJson.entries) {
-        props[entry.key] = SwaggerProperty.fromJson(entry.key, entry.value as Map<String, dynamic>);
+        props[entry.key] = SwaggerProperty.fromJson(
+          entry.key,
+          entry.value as Map<String, dynamic>,
+        );
       }
     }
 
@@ -554,7 +611,8 @@ class SwaggerProperty {
   String get dartType {
     if (ref != null) return definitionRenames[ref!] ?? ref!;
     if (type == 'array') {
-      if (itemsRef != null) return 'List<${definitionRenames[itemsRef!] ?? itemsRef!}>';
+      if (itemsRef != null)
+        return 'List<${definitionRenames[itemsRef!] ?? itemsRef!}>';
       if (itemsType == 'integer' || itemsType == 'int') return 'List<int>';
       if (itemsType == 'number' || itemsType == 'double') return 'List<double>';
       if (itemsType == 'boolean' || itemsType == 'bool') return 'List<bool>';
@@ -569,13 +627,18 @@ class SwaggerProperty {
   }
 
   bool get isNestedObject => ref != null || properties.isNotEmpty;
-  bool get isNestedList => type == 'array' && (itemsRef != null || itemsType == 'object');
+  bool get isNestedList =>
+      type == 'array' && (itemsRef != null || itemsType == 'object');
 }
 
 // ─── Code Generator ────────────────────────────────────────────────────────────
 
 class CodeGenerator {
-  CodeGenerator({required this.swagger, required this.dryRun, required this.packageName});
+  CodeGenerator({
+    required this.swagger,
+    required this.dryRun,
+    required this.packageName,
+  });
 
   final SwaggerSpec swagger;
   final bool dryRun;
@@ -609,18 +672,24 @@ class CodeGenerator {
       final path = pathEntry.key;
       for (final methodEntry in pathEntry.value.entries) {
         final op = methodEntry.value;
-        final firstSegment = path.split('/').where((s) => s.isNotEmpty).firstOrNull;
+        final firstSegment = path
+            .split('/')
+            .where((s) => s.isNotEmpty)
+            .firstOrNull;
 
         final assignedGroups = <String>{};
 
         // Determine whether to override group based on the first path segment
-        if (firstSegment != null && pathSegmentGroupsMapping.containsKey(firstSegment)) {
+        if (firstSegment != null &&
+            pathSegmentGroupsMapping.containsKey(firstSegment)) {
           assignedGroups.addAll(pathSegmentGroupsMapping[firstSegment]!);
         } else if (op.tags.isNotEmpty) {
           // Group by tags (case-insensitive lookup into tagGroupsMapping)
           for (final tag in op.tags) {
             final tagLower = tag.toLowerCase();
-            final matchingKey = tagGroupsMapping.keys.cast<String?>().firstWhere(
+            final matchingKey = tagGroupsMapping.keys
+                .cast<String?>()
+                .firstWhere(
                   (k) => k!.toLowerCase() == tagLower,
                   orElse: () => null,
                 );
@@ -632,7 +701,9 @@ class CodeGenerator {
           }
         } else {
           // Fallback to the first path segment if neither override nor tags exist
-          assignedGroups.add(firstSegment != null ? _camelToSnake(firstSegment) : 'default');
+          assignedGroups.add(
+            firstSegment != null ? _camelToSnake(firstSegment) : 'default',
+          );
         }
 
         for (final group in assignedGroups) {
@@ -649,7 +720,10 @@ class CodeGenerator {
       final def = entry.value;
 
       final nameLower = name.trim().toLowerCase();
-      if (def.isResponseWrapper || nameLower.contains('apierror') || nameLower.endsWith('successresponse') || nameLower == 'paginator') {
+      if (def.isResponseWrapper ||
+          nameLower.contains('apierror') ||
+          nameLower.endsWith('successresponse') ||
+          nameLower == 'paginator') {
         responseDefs[name] = def;
       } else {
         modelDefs[name] = def;
@@ -657,7 +731,11 @@ class CodeGenerator {
     }
 
     // 3. Compute definition→group mapping dynamically
-    _definitionToGroup = _computeDefinitionGroups(modelDefs, responseDefs, groupOps);
+    _definitionToGroup = _computeDefinitionGroups(
+      modelDefs,
+      responseDefs,
+      groupOps,
+    );
 
     // 3.5. Validate swagger spec for potential codegen issues
     _validateSpec(modelDefs, responseDefs, groupOps);
@@ -687,7 +765,11 @@ class CodeGenerator {
       // Generate service stubs in api/<group>/controller/
       _generateService(group, ops, responseDefs);
 
-      final hasPagination = _generatePaginationControllers(group, ops, responseDefs);
+      final hasPagination = _generatePaginationControllers(
+        group,
+        ops,
+        responseDefs,
+      );
 
       // Generate controller barrel file
       _generateControllerBarrel(group, hasPagination);
@@ -790,7 +872,8 @@ class CodeGenerator {
     for (final entry in groupOps.entries) {
       final group = entry.key;
       for (final op in entry.value) {
-        if (op.successResponseRef != null) addRef(op.successResponseRef!, group, {});
+        if (op.successResponseRef != null)
+          addRef(op.successResponseRef!, group, {});
         for (final p in op.parameters) {
           if (p.schemaRef != null) addRef(p.schemaRef!, group, {});
         }
@@ -825,16 +908,24 @@ class CodeGenerator {
           final modelsDir = Directory('${groupDir.path}/models');
           if (modelsDir.existsSync()) {
             for (final modelFile in modelsDir.listSync()) {
-              if (modelFile is File && modelFile.path.endsWith('.dart') && !modelFile.path.endsWith('models.dart')) {
+              if (modelFile is File &&
+                  modelFile.path.endsWith('.dart') &&
+                  !modelFile.path.endsWith('models.dart')) {
                 final content = modelFile.readAsStringSync();
                 // Skip files that were generated by this tool
-                if (content.contains('// Generated by swagger_codegen.dart')) continue;
+                if (content.contains('// Generated by swagger_codegen.dart'))
+                  continue;
 
-                final relativePath = modelFile.path.replaceFirst('$libDir/api/', '').replaceAll(r'\\', '/');
+                final relativePath = modelFile.path
+                    .replaceFirst('$libDir/api/', '')
+                    .replaceAll(r'\\', '/');
                 final importPath = '$_pkg/api/$relativePath';
 
                 // Find all class definitions in the file
-                final classMatches = RegExp(r'^class\s+([A-Z][a-zA-Z0-9_]*)', multiLine: true).allMatches(content);
+                final classMatches = RegExp(
+                  r'^class\s+([A-Z][a-zA-Z0-9_]*)',
+                  multiLine: true,
+                ).allMatches(content);
                 for (final match in classMatches) {
                   final className = match.group(1)!;
                   _dynamicSkipDefinitions.add(className);
@@ -872,7 +963,9 @@ class CodeGenerator {
     }
     for (final entry in sanitizedNames.entries) {
       if (entry.value.length > 1) {
-        warnings.add('Definition name collision: ${entry.value.join(", ")} all sanitize to "${entry.key}"');
+        warnings.add(
+          'Definition name collision: ${entry.value.join(", ")} all sanitize to "${entry.key}"',
+        );
       }
     }
 
@@ -880,10 +973,14 @@ class CodeGenerator {
     for (final def in allDefs.values) {
       for (final prop in def.properties.values) {
         if (prop.ref != null && !allDefs.containsKey(prop.ref)) {
-          warnings.add('Property "${prop.name}" in "${def.name}" references missing definition "${prop.ref}"');
+          warnings.add(
+            'Property "${prop.name}" in "${def.name}" references missing definition "${prop.ref}"',
+          );
         }
         if (prop.itemsRef != null && !allDefs.containsKey(prop.itemsRef)) {
-          warnings.add('Property "${prop.name}" in "${def.name}" has items referencing missing definition "${prop.itemsRef}"');
+          warnings.add(
+            'Property "${prop.name}" in "${def.name}" has items referencing missing definition "${prop.itemsRef}"',
+          );
         }
       }
     }
@@ -892,7 +989,9 @@ class CodeGenerator {
     for (final def in allDefs.values) {
       for (final prop in def.properties.values) {
         if (_dartReservedKeywords.contains(prop.name)) {
-          warnings.add('Definition "${def.name}" has field "${prop.name}" which is a Dart reserved keyword → renamed to "${prop.dartName}"');
+          warnings.add(
+            'Definition "${def.name}" has field "${prop.name}" which is a Dart reserved keyword → renamed to "${prop.dartName}"',
+          );
         }
       }
     }
@@ -900,10 +999,14 @@ class CodeGenerator {
       for (final op in ops) {
         for (final p in op.formParams) {
           if (RegExp(r'\[\d+\]').hasMatch(p.name)) {
-            warnings.add('Endpoint "${op.operationId ?? op.path}" has bracket-indexed param "${p.name}" → renamed to "${p.dartName}"');
+            warnings.add(
+              'Endpoint "${op.operationId ?? op.path}" has bracket-indexed param "${p.name}" → renamed to "${p.dartName}"',
+            );
           }
           if (_dartReservedKeywords.contains(p.name)) {
-            warnings.add('Endpoint "${op.operationId ?? op.path}" has param "${p.name}" which is a Dart reserved keyword → renamed to "${p.dartName}"');
+            warnings.add(
+              'Endpoint "${op.operationId ?? op.path}" has param "${p.name}" which is a Dart reserved keyword → renamed to "${p.dartName}"',
+            );
           }
         }
       }
@@ -947,7 +1050,9 @@ class CodeGenerator {
       if (group == null) continue; // Skip models not assigned to any group
       final modelName = '${dartName}Model';
 
-      if (skipDefinitions.contains(name) || _dynamicSkipDefinitions.contains(dartName) || _dynamicSkipDefinitions.contains(modelName)) {
+      if (skipDefinitions.contains(name) ||
+          _dynamicSkipDefinitions.contains(dartName) ||
+          _dynamicSkipDefinitions.contains(modelName)) {
         print('   ⏭ Skipping model: $modelName (already implemented manually)');
         final modelFileName = '${_camelToSnake(dartName)}_model';
         final existingPath = '$libDir/api/$group/models/$modelFileName.dart';
@@ -959,14 +1064,20 @@ class CodeGenerator {
 
       // Skip models from skipped groups
       if (skipGroups.contains(group)) {
-        if (!_isModelReferencedByNonSkippedGroup(name, groupOps, responseDefs)) {
+        if (!_isModelReferencedByNonSkippedGroup(
+          name,
+          groupOps,
+          responseDefs,
+        )) {
           print('   ⏭ Skipping model: $modelName (in skipped group "$group")');
           continue;
         }
       }
 
       if (def.properties.isEmpty) {
-        print('   ⚠️  Model "$modelName" has no properties (empty definition), but generating it anyway.');
+        print(
+          '   ⚠️  Model "$modelName" has no properties (empty definition), but generating it anyway.',
+        );
       }
 
       final modelBuffer = StringBuffer();
@@ -975,7 +1086,9 @@ class CodeGenerator {
       modelBuffer.writeln("import '$_pkg/utils/utils.dart';");
 
       // Check if any property uses the dart:io File type
-      final needsDartIo = def.properties.values.any((p) => p.dartType == 'File');
+      final needsDartIo = def.properties.values.any(
+        (p) => p.dartType == 'File',
+      );
       if (needsDartIo) {
         modelBuffer.writeln("import 'dart:io';");
       }
@@ -984,7 +1097,8 @@ class CodeGenerator {
       final modelImports = <String>{};
       for (final prop in def.properties.values) {
         if (prop.ref != null) _addModelImportForRef(modelImports, prop.ref!);
-        if (prop.itemsRef != null) _addModelImportForRef(modelImports, prop.itemsRef!);
+        if (prop.itemsRef != null)
+          _addModelImportForRef(modelImports, prop.itemsRef!);
       }
 
       final sortedModelImports = modelImports.toList()..sort();
@@ -1009,14 +1123,19 @@ class CodeGenerator {
       if (skipGroups.contains(group)) continue;
 
       for (final op in ops) {
-        if (op.formParams.isNotEmpty || op.pathParams.isNotEmpty || op.parameters.any((p) => p.location == 'body')) {
+        if (op.formParams.isNotEmpty ||
+            op.pathParams.isNotEmpty ||
+            op.parameters.any((p) => p.location == 'body')) {
           final name = _operationToRequestModelName(op);
           final modelName = '${name}Model';
           if (writtenRequestModels.contains(modelName)) continue;
           writtenRequestModels.add(modelName);
 
-          if (skipDefinitions.contains(name) || _dynamicSkipDefinitions.contains(modelName)) {
-            print('   ⏭ Skipping request model: $modelName (already implemented manually)');
+          if (skipDefinitions.contains(name) ||
+              _dynamicSkipDefinitions.contains(modelName)) {
+            print(
+              '   ⏭ Skipping request model: $modelName (already implemented manually)',
+            );
             continue;
           }
 
@@ -1029,7 +1148,9 @@ class CodeGenerator {
 
           final isMultipart = op.consumes.contains('multipart/form-data');
           if (isMultipart || op.formParams.isNotEmpty) {
-            modelBuffer.writeln("import 'package:dio/dio.dart'; // For FormData");
+            modelBuffer.writeln(
+              "import 'package:dio/dio.dart'; // For FormData",
+            );
           }
 
           // Check if any property uses File type (needs dart:io)
@@ -1043,7 +1164,8 @@ class CodeGenerator {
           _writeRequestModelClassDirect(modelBuffer, modelName, op);
 
           _writeFile(modelPath, modelBuffer.toString());
-          _modelImportPaths[name] = '$_pkg/api/$group/models/${fileName}_model.dart';
+          _modelImportPaths[name] =
+              '$_pkg/api/$group/models/${fileName}_model.dart';
           print('   📄 Request Model: $modelName → $modelPath');
         }
       }
@@ -1051,7 +1173,11 @@ class CodeGenerator {
   }
 
   /// Writes a full data class Model without depending on an Entity.
-  void _writeModelClassDirect(StringBuffer buffer, String dartName, SwaggerDefinition def) {
+  void _writeModelClassDirect(
+    StringBuffer buffer,
+    String dartName,
+    SwaggerDefinition def,
+  ) {
     final props = def.properties.values.toList();
     final modelName = '${dartName}Model';
 
@@ -1093,10 +1219,14 @@ class CodeGenerator {
     buffer.writeln();
 
     // fromJson
-    buffer.writeln('  factory $modelName.fromJson(Map<String, dynamic> json) {');
+    buffer.writeln(
+      '  factory $modelName.fromJson(Map<String, dynamic> json) {',
+    );
     buffer.writeln('    return $modelName(');
     for (final prop in props) {
-      buffer.writeln('      ${fn(prop)}: ${_fromJsonExpressionForModel(prop, dartName)},');
+      buffer.writeln(
+        '      ${fn(prop)}: ${_fromJsonExpressionForModel(prop, dartName)},',
+      );
     }
     buffer.writeln('    );');
     buffer.writeln('  }');
@@ -1138,7 +1268,11 @@ class CodeGenerator {
   }
 
   /// Writes a request model that does not depend on an entity.
-  void _writeRequestModelClassDirect(StringBuffer buffer, String modelName, SwaggerOperation op) {
+  void _writeRequestModelClassDirect(
+    StringBuffer buffer,
+    String modelName,
+    SwaggerOperation op,
+  ) {
     final props = _extractRequestProperties(op);
     final isMultipart = op.consumes.contains('multipart/form-data');
 
@@ -1170,7 +1304,9 @@ class CodeGenerator {
 
     if (isMultipart || op.formParams.isNotEmpty) {
       buffer.writeln('  FormData toFormData() {');
-      buffer.writeln('    return FormData.fromMap(toJson()..removeWhere((key, value) => value == null));');
+      buffer.writeln(
+        '    return FormData.fromMap(toJson()..removeWhere((key, value) => value == null));',
+      );
       buffer.writeln('  }');
       buffer.writeln();
     }
@@ -1196,23 +1332,31 @@ class CodeGenerator {
         final schema = p.schema!;
         if (schema.containsKey('$ref')) {
           ref = (schema['$ref'] as String).split('/').last;
-        } else if (schema['items'] != null && (schema['items'] as Map).containsKey('$ref')) {
-          itemsRef = (schema['items'] as Map)['$ref'].toString().split('/').last;
+        } else if (schema['items'] != null &&
+            (schema['items'] as Map).containsKey('$ref')) {
+          itemsRef = (schema['items'] as Map)['$ref']
+              .toString()
+              .split('/')
+              .last;
         }
       }
 
-      results.add(_RequestProp(
-        name: p.name,
-        dartName: p.dartName,
-        dartType: p.dartType,
-        isRequired: p.required_,
-        ref: ref,
-        itemsRef: itemsRef,
-      ),);
+      results.add(
+        _RequestProp(
+          name: p.name,
+          dartName: p.dartName,
+          dartType: p.dartType,
+          isRequired: p.required_,
+          ref: ref,
+          itemsRef: itemsRef,
+        ),
+      );
     }
 
     // Body flattening
-    final bodyParams = op.parameters.where((p) => p.location == 'body').toList();
+    final bodyParams = op.parameters
+        .where((p) => p.location == 'body')
+        .toList();
     if (bodyParams.isNotEmpty) {
       final bodyParam = bodyParams.first;
       if (bodyParam.schema != null && bodyParam.schema!['properties'] != null) {
@@ -1221,24 +1365,34 @@ class CodeGenerator {
           final propName = entry.key;
           final propData = entry.value as Map<String, dynamic>;
           final type = propData['type'] as String? ?? 'string';
-          final dartType = type == 'integer' ? 'int' : (type == 'number' ? 'double' : (type == 'boolean' ? 'bool' : 'String'));
+          final dartType = type == 'integer'
+              ? 'int'
+              : (type == 'number'
+                    ? 'double'
+                    : (type == 'boolean' ? 'bool' : 'String'));
 
           String? ref;
           String? itemsRef;
           if (propData.containsKey('$ref')) {
             ref = (propData['$ref'] as String).split('/').last;
-          } else if (propData['items'] != null && (propData['items'] as Map).containsKey('$ref')) {
-            itemsRef = (propData['items'] as Map)['$ref'].toString().split('/').last;
+          } else if (propData['items'] != null &&
+              (propData['items'] as Map).containsKey('$ref')) {
+            itemsRef = (propData['items'] as Map)['$ref']
+                .toString()
+                .split('/')
+                .last;
           }
 
-          results.add(_RequestProp(
-            name: propName,
-            dartName: _safeDartName(propName),
-            dartType: dartType,
-            isRequired: true,
-            ref: ref,
-            itemsRef: itemsRef,
-          ),);
+          results.add(
+            _RequestProp(
+              name: propName,
+              dartName: _safeDartName(propName),
+              dartType: dartType,
+              isRequired: true,
+              ref: ref,
+              itemsRef: itemsRef,
+            ),
+          );
         }
       }
     }
@@ -1279,25 +1433,37 @@ class CodeGenerator {
     buffer.writeln('///');
     buffer.writeln('/// ## 📋 Import Adjustments When Copying');
     buffer.writeln('///');
-    buffer.writeln('/// If you copy this file to `lib/$group/controller/`, update imports:');
-    buffer.writeln('/// - Models: Keep api imports or update to relative paths');
+    buffer.writeln(
+      '/// If you copy this file to `lib/$group/controller/`, update imports:',
+    );
+    buffer.writeln(
+      '/// - Models: Keep api imports or update to relative paths',
+    );
     buffer.writeln('/// - Utils: `$_pkg/utils/utils.dart` (unchanged)');
-    buffer.writeln('/// - Auth: `$_pkg/auth/controller/interceptor.dart` (unchanged)');
+    buffer.writeln(
+      '/// - Auth: `$_pkg/auth/controller/interceptor.dart` (unchanged)',
+    );
     buffer.writeln('/// - Endpoints: Available via `$_pkg/utils/utils.dart`');
     buffer.writeln('///');
     buffer.writeln("import '$_pkg/api/api.dart'; // ignore: unused_import");
     // Endpoints come via utils.dart
-    buffer.writeln("import '$_pkg/auth/controller/interceptor.dart'; // ignore: unused_import");
+    buffer.writeln(
+      "import '$_pkg/auth/controller/interceptor.dart'; // ignore: unused_import",
+    );
     buffer.writeln("import '$_pkg/utils/utils.dart'; // ignore: unused_import");
     buffer.writeln();
-    buffer.writeln('/// Concrete repository for ${_humanize(group)} operations.');
+    buffer.writeln(
+      '/// Concrete repository for ${_humanize(group)} operations.',
+    );
     buffer.writeln('///');
     buffer.writeln('/// Makes real API calls via [ApiClient].');
     buffer.writeln('class $className extends ApiClient {');
     buffer.writeln();
 
     if (requiresAuth) {
-      buffer.writeln("  $className() : super(interceptors: [AuthInterceptor(rejectIfNoSession: true)], name: '$className');");
+      buffer.writeln(
+        "  $className() : super(interceptors: [AuthInterceptor(rejectIfNoSession: true)], name: '$className');",
+      );
     } else {
       buffer.writeln("  $className() : super(name: '$className');");
     }
@@ -1375,14 +1541,22 @@ class CodeGenerator {
     buffer.writeln('/// Service class for ${_humanize(group)} operations.');
     buffer.writeln('/// Extends [$repoName] to inherit API calls.');
     buffer.writeln('///');
-    buffer.writeln('/// Provides a [BehaviorSubject] with typed [$stateClassName] events.');
-    buffer.writeln('/// Listen to [onStateChanges] to react to loading / success / error states.');
+    buffer.writeln(
+      '/// Provides a [BehaviorSubject] with typed [$stateClassName] events.',
+    );
+    buffer.writeln(
+      '/// Listen to [onStateChanges] to react to loading / success / error states.',
+    );
     buffer.writeln('class $className extends $repoName with ChangeNotifier {');
     buffer.writeln('  $className();');
     buffer.writeln();
     buffer.writeln('  // ── State Stream ──');
-    buffer.writeln('  final _stateController = BehaviorSubject<$stateClassName>();');
-    buffer.writeln('  Stream<$stateClassName> get onStateChanges => _stateController.stream;');
+    buffer.writeln(
+      '  final _stateController = BehaviorSubject<$stateClassName>();',
+    );
+    buffer.writeln(
+      '  Stream<$stateClassName> get onStateChanges => _stateController.stream;',
+    );
     buffer.writeln();
 
     // Generate a wrapped method for each operation
@@ -1390,19 +1564,25 @@ class CodeGenerator {
       final methodName = _sanitizeMethodName(_operationToMethodName(op));
       final returnType = _determineReturnType(op, responseDefs, forModel: true);
       final params = _buildMethodParams(op);
-      
+
       // State variable
       final stateVarName = '_${methodName}Data';
       if (returnType != 'void' && returnType != 'dynamic') {
         buffer.writeln('  $returnType? $stateVarName;');
-        buffer.writeln('  $returnType? get ${methodName}Data => $stateVarName;');
+        buffer.writeln(
+          '  $returnType? get ${methodName}Data => $stateVarName;',
+        );
         buffer.writeln();
       }
 
       // Build the call args to forward to super
       final callArgs = <String>[];
-      if ((op.formParams.isNotEmpty || op.parameters.any((p) => p.location == 'body')) &&
-          (op.method == 'post' || op.method == 'put' || op.method == 'patch' || op.method == 'delete')) {
+      if ((op.formParams.isNotEmpty ||
+              op.parameters.any((p) => p.location == 'body')) &&
+          (op.method == 'post' ||
+              op.method == 'put' ||
+              op.method == 'patch' ||
+              op.method == 'delete')) {
         callArgs.add('request: request');
       }
       for (final param in op.queryParams) {
@@ -1421,7 +1601,9 @@ class CodeGenerator {
       buffer.writeln('    _stateController.add(${pascal}Loading());');
       buffer.writeln('    try {');
 
-      buffer.writeln('      final result = await super.${methodName}Repo(${callArgs.isNotEmpty ? callArgs.join(', ') : ''});');
+      buffer.writeln(
+        '      final result = await super.${methodName}Repo(${callArgs.isNotEmpty ? callArgs.join(', ') : ''});',
+      );
       if (returnType != 'void' && returnType != 'dynamic') {
         buffer.writeln('      $stateVarName = result;');
         buffer.writeln('      notifyListeners();');
@@ -1430,14 +1612,18 @@ class CodeGenerator {
       buffer.writeln('      return result;');
 
       buffer.writeln('    } catch (e) {');
-      buffer.writeln('      _stateController.add(${pascal}Error(e.toString()));');
+      buffer.writeln(
+        '      _stateController.add(${pascal}Error(e.toString()));',
+      );
       buffer.writeln('      rethrow;');
       buffer.writeln('    }');
       buffer.writeln('  }');
       buffer.writeln();
     }
 
-    buffer.writeln('  // Add custom business logic, state management, or method overrides here');
+    buffer.writeln(
+      '  // Add custom business logic, state management, or method overrides here',
+    );
     buffer.writeln('}');
 
     _writeFile(filePath, buffer.toString());
@@ -1449,7 +1635,9 @@ class CodeGenerator {
     List<SwaggerOperation> ops,
     Map<String, SwaggerDefinition> responseDefs,
   ) {
-    final paginatedOps = ops.where((op) => _isPaginatedResponse(op, responseDefs)).toList();
+    final paginatedOps = ops
+        .where((op) => _isPaginatedResponse(op, responseDefs))
+        .toList();
     if (paginatedOps.isEmpty) return false;
 
     final pascal = _pascalCase(group);
@@ -1467,22 +1655,30 @@ class CodeGenerator {
       final methodName = _sanitizeMethodName(_operationToMethodName(op));
       final pascalMethodName = _pascalCase(methodName);
       final returnType = _determineReturnType(op, responseDefs, forModel: true);
-      
+
       final match = RegExp(r'List<(\w+)>').firstMatch(returnType);
       final itemType = match?.group(1) ?? 'dynamic';
 
-      buffer.writeln('/// Auto-generated Pagination Controller for [$methodName]');
-      buffer.writeln('class ${pascalMethodName}Pagination extends BasePaginationController<$itemType> {');
+      buffer.writeln(
+        '/// Auto-generated Pagination Controller for [$methodName]',
+      );
+      buffer.writeln(
+        'class ${pascalMethodName}Pagination extends BasePaginationController<$itemType> {',
+      );
       buffer.writeln('  ${pascalMethodName}Pagination(this.service);');
       buffer.writeln();
       buffer.writeln('  final ${pascal}Service service;');
       buffer.writeln();
 
-      final allFields = <String, String>{}; 
+      final allFields = <String, String>{};
       final callArgs = <String>[];
 
-      if ((op.formParams.isNotEmpty || op.parameters.any((p) => p.location == 'body')) &&
-          (op.method == 'post' || op.method == 'put' || op.method == 'patch' || op.method == 'delete')) {
+      if ((op.formParams.isNotEmpty ||
+              op.parameters.any((p) => p.location == 'body')) &&
+          (op.method == 'post' ||
+              op.method == 'put' ||
+              op.method == 'patch' ||
+              op.method == 'delete')) {
         final requestModelName = _operationToRequestModelName(op);
         allFields['request'] = '${requestModelName}Model';
         callArgs.add('request: request!');
@@ -1494,18 +1690,27 @@ class CodeGenerator {
       }
 
       for (final param in op.queryParams) {
-        if (param.name == 'page' || param.dartName == 'page' || param.name == 'pageKey') {
-          final val = param.dartType == 'String' ? 'pageKey.toString()' : 'pageKey';
+        if (param.name == 'page' ||
+            param.dartName == 'page' ||
+            param.name == 'pageKey') {
+          final val = param.dartType == 'String'
+              ? 'pageKey.toString()'
+              : 'pageKey';
           callArgs.add('${param.dartName}: $val');
         } else {
           allFields[param.dartName] = param.dartType;
           if (param.required_) {
             String fallback = '';
-            if (param.dartType == 'String') fallback = " ?? ''";
-            else if (param.dartType == 'int') fallback = " ?? 0";
-            else if (param.dartType == 'double') fallback = " ?? 0.0";
-            else if (param.dartType == 'bool') fallback = " ?? false";
-            else fallback = "!";
+            if (param.dartType == 'String')
+              fallback = " ?? ''";
+            else if (param.dartType == 'int')
+              fallback = " ?? 0";
+            else if (param.dartType == 'double')
+              fallback = " ?? 0.0";
+            else if (param.dartType == 'bool')
+              fallback = " ?? false";
+            else
+              fallback = "!";
             callArgs.add('${param.dartName}: ${param.dartName}$fallback');
           } else {
             callArgs.add('${param.dartName}: ${param.dartName}');
@@ -1522,7 +1727,9 @@ class CodeGenerator {
       }
 
       buffer.writeln('  @override');
-      buffer.writeln('  Future<({List<$itemType> items, Paginator paginator})> fetchApi(int pageKey) {');
+      buffer.writeln(
+        '  Future<({List<$itemType> items, Paginator paginator})> fetchApi(int pageKey) {',
+      );
       buffer.write('    return service.${methodName}Service(');
       if (callArgs.isNotEmpty) {
         buffer.writeln();
@@ -1534,13 +1741,19 @@ class CodeGenerator {
       buffer.writeln();
 
       if (allFields.isNotEmpty) {
-        buffer.writeln('  /// Helper to smoothly merge state and trigger debounce refreshes');
+        buffer.writeln(
+          '  /// Helper to smoothly merge state and trigger debounce refreshes',
+        );
         buffer.write('  void updateFilters({');
-        buffer.write(allFields.entries.map((e) => '${e.value}? ${e.key}').join(', '));
+        buffer.write(
+          allFields.entries.map((e) => '${e.value}? ${e.key}').join(', '),
+        );
         buffer.writeln('}) {');
         buffer.writeln('    debounceRefresh(() {');
         for (final entry in allFields.entries) {
-          buffer.writeln('      if (${entry.key} != null) this.${entry.key} = ${entry.key};');
+          buffer.writeln(
+            '      if (${entry.key} != null) this.${entry.key} = ${entry.key};',
+          );
         }
         buffer.writeln('    });');
         buffer.writeln('  }');
@@ -1567,7 +1780,7 @@ class CodeGenerator {
     if (hasPagination) {
       buffer.writeln("export 'pagination.dart';");
     }
-    
+
     _writeFile(filePath, buffer.toString());
   }
 
@@ -1587,7 +1800,8 @@ class CodeGenerator {
     Map<String, SwaggerDefinition> responseDefs,
   ) {
     final methodName = _sanitizeMethodName(_operationToMethodName(op));
-    final endpointConst = '$endpointClass.${_sanitizeMethodName(_endpointConstName(op))}';
+    final endpointConst =
+        '$endpointClass.${_sanitizeMethodName(_endpointConstName(op))}';
     final returnType = _determineReturnType(op, responseDefs, forModel: true);
     final isPaginated = _isPaginatedResponse(op, responseDefs);
 
@@ -1624,7 +1838,9 @@ class CodeGenerator {
         if (param.required_) {
           buffer.writeln("        '${param.name}': ${param.dartName},");
         } else {
-          buffer.writeln("        if (${param.dartName} != null) '${param.name}': ${param.dartName},");
+          buffer.writeln(
+            "        if (${param.dartName} != null) '${param.name}': ${param.dartName},",
+          );
         }
       }
       buffer.writeln('      };');
@@ -1633,14 +1849,18 @@ class CodeGenerator {
 
     if (httpMethod == 'get') {
       buffer.writeln('      final response = await $httpMethod(');
-      buffer.writeln('        ${op.pathParams.isNotEmpty ? pathExpr : endpointConst},');
+      buffer.writeln(
+        '        ${op.pathParams.isNotEmpty ? pathExpr : endpointConst},',
+      );
       if (op.queryParams.isNotEmpty) {
         buffer.writeln('        queryParameters: queryParams,');
       }
       buffer.writeln('      );');
     } else {
       buffer.writeln('      final response = await $httpMethod(');
-      buffer.writeln('        ${op.pathParams.isNotEmpty ? pathExpr : endpointConst},');
+      buffer.writeln(
+        '        ${op.pathParams.isNotEmpty ? pathExpr : endpointConst},',
+      );
 
       final isMultipart = op.consumes.contains('multipart/form-data');
       final hasFormParams = op.formParams.isNotEmpty;
@@ -1657,7 +1877,9 @@ class CodeGenerator {
     }
 
     buffer.writeln();
-    buffer.writeln('      final apiResponse = ApiResponse.fromJson(response.data as Map<String, dynamic>);');
+    buffer.writeln(
+      '      final apiResponse = ApiResponse.fromJson(response.data as Map<String, dynamic>);',
+    );
     buffer.writeln('      if (apiResponse is ApiFailureResponse) {');
     buffer.writeln('        throw Exception(apiResponse.message);');
     buffer.writeln('      }');
@@ -1689,13 +1911,16 @@ class CodeGenerator {
     }
 
     final responseDef = responseDefs[successRef];
-    final payloadProp = responseDef?.properties['payload'] ?? responseDef?.properties['data'];
+    final payloadProp =
+        responseDef?.properties['payload'] ?? responseDef?.properties['data'];
 
     if (responseDef == null || payloadProp == null) {
       if (returnType == 'bool') {
         buffer.writeln('      return true;');
       } else if (returnType.endsWith('Model')) {
-        buffer.writeln('      final data = apiResponse.data as Map<String, dynamic>;');
+        buffer.writeln(
+          '      final data = apiResponse.data as Map<String, dynamic>;',
+        );
         buffer.writeln('      return $returnType.fromJson(data);');
       } else {
         buffer.writeln('      return apiResponse.data;');
@@ -1718,28 +1943,44 @@ class CodeGenerator {
       }
 
       if (isPaginated) {
-        buffer.writeln('      final items = (apiResponse.data as List<dynamic>)');
-        buffer.writeln('          .map((e) => $itemType.fromJson(e as Map<String, dynamic>))');
+        buffer.writeln(
+          '      final items = (apiResponse.data as List<dynamic>)',
+        );
+        buffer.writeln(
+          '          .map((e) => $itemType.fromJson(e as Map<String, dynamic>))',
+        );
         buffer.writeln('          .toList();');
-        buffer.writeln('      return (items: items, paginator: apiResponse.paginator!);');
+        buffer.writeln(
+          '      return (items: items, paginator: apiResponse.paginator!);',
+        );
       } else {
         buffer.writeln('      return (apiResponse.data as List<dynamic>)');
-        buffer.writeln('          .map((e) => $itemType.fromJson(e as Map<String, dynamic>))');
+        buffer.writeln(
+          '          .map((e) => $itemType.fromJson(e as Map<String, dynamic>))',
+        );
         buffer.writeln('          .toList();');
       }
     } else if (payloadProp.isNestedObject) {
       // Use returnType directly instead of resolving from refs
       String? modelName;
-      if (returnType != 'dynamic' && !returnType.startsWith('List<') && !returnType.startsWith('(')) {
+      if (returnType != 'dynamic' &&
+          !returnType.startsWith('List<') &&
+          !returnType.startsWith('(')) {
         modelName = returnType;
       }
 
       if (modelName != null) {
         if (payloadProp.name != 'data' && payloadProp.name != 'payload') {
-          buffer.writeln('      final data = apiResponse.data as Map<String, dynamic>;');
-          buffer.writeln("      return $modelName.fromJson(data['${payloadProp.name}'] as Map<String, dynamic>);");
+          buffer.writeln(
+            '      final data = apiResponse.data as Map<String, dynamic>;',
+          );
+          buffer.writeln(
+            "      return $modelName.fromJson(data['${payloadProp.name}'] as Map<String, dynamic>);",
+          );
         } else {
-          buffer.writeln('      final data = apiResponse.data as Map<String, dynamic>;');
+          buffer.writeln(
+            '      final data = apiResponse.data as Map<String, dynamic>;',
+          );
           buffer.writeln('      return $modelName.fromJson(data);');
         }
       } else {
@@ -1749,8 +1990,13 @@ class CodeGenerator {
       // Fallback: try parsing if returnType is a model class
       if (returnType == 'bool') {
         buffer.writeln('      return true;');
-      } else if (returnType != 'dynamic' && !returnType.startsWith('List<') && !returnType.startsWith('(') && returnType.endsWith('Model')) {
-        buffer.writeln('      final data = apiResponse.data as Map<String, dynamic>;');
+      } else if (returnType != 'dynamic' &&
+          !returnType.startsWith('List<') &&
+          !returnType.startsWith('(') &&
+          returnType.endsWith('Model')) {
+        buffer.writeln(
+          '      final data = apiResponse.data as Map<String, dynamic>;',
+        );
         buffer.writeln('      return $returnType.fromJson(data);');
       } else {
         buffer.writeln('      return apiResponse.data;');
@@ -1781,7 +2027,9 @@ class CodeGenerator {
 
     final buffer = StringBuffer();
     buffer.writeln(_fileHeader('API Endpoints'));
-    buffer.writeln('/// All endpoints are relative to the base URL defined in environment variables.');
+    buffer.writeln(
+      '/// All endpoints are relative to the base URL defined in environment variables.',
+    );
     buffer.writeln('library;');
     buffer.writeln();
 
@@ -1818,7 +2066,10 @@ class CodeGenerator {
         final constName = _endpointConstName(op);
         if (seen.contains(constName)) continue;
         seen.add(constName);
-        final cleanPath = op.path.replaceAll(r'\n', '').replaceAll(r'\r', '').trim();
+        final cleanPath = op.path
+            .replaceAll(r'\n', '')
+            .replaceAll(r'\r', '')
+            .trim();
         buffer.writeln("  static const String $constName = '$cleanPath';");
       }
 
@@ -1841,20 +2092,25 @@ class CodeGenerator {
 
   // ── Barrel Exports ──────────────────────────────────────────────────────
 
-  void _generateBarrelExports(Iterable<String> groups, Map<String, List<SwaggerOperation>> groupOps) {
+  void _generateBarrelExports(
+    Iterable<String> groups,
+    Map<String, List<SwaggerOperation>> groupOps,
+  ) {
     final allExports = <String>[];
     final groupedExports = <String, List<String>>{};
 
     for (final group in groups) {
       final groupExports = <String>[];
-      
+
       // 1. Generate models barrel (granular)
       final modelsPath = '$libDir/api/$group/models';
       final modelsDir = Directory(modelsPath);
       if (modelsDir.existsSync()) {
         final exports = <String>[];
         for (final entity in modelsDir.listSync()) {
-          if (entity is File && entity.path.endsWith('.dart') && !entity.path.endsWith('models.dart')) {
+          if (entity is File &&
+              entity.path.endsWith('.dart') &&
+              !entity.path.endsWith('models.dart')) {
             final fileName = entity.path.split('/').last.split(r'\').last;
             exports.add("export '$fileName';");
           }
@@ -1873,7 +2129,8 @@ class CodeGenerator {
       }
 
       // 2. Add controller barrel to group exports (only if group has operations)
-      final groupHasOps = groupOps.containsKey(group) && groupOps[group]!.isNotEmpty;
+      final groupHasOps =
+          groupOps.containsKey(group) && groupOps[group]!.isNotEmpty;
       if (groupHasOps && !skipGroups.contains(group)) {
         groupExports.add('controller/controller.dart');
       }
@@ -1904,11 +2161,13 @@ class CodeGenerator {
   void _generateGroupBarrelFile(String group, List<String> exports) {
     final pascal = _pascalCase(group);
     final buffer = StringBuffer();
-    
+
     buffer.writeln(_fileHeader('Feature Barrel: $pascal'));
     buffer.writeln('/// Complete export for ${_humanize(group)} feature.');
     buffer.writeln('///');
-    buffer.writeln('/// This barrel file exports all components for the $group feature:');
+    buffer.writeln(
+      '/// This barrel file exports all components for the $group feature:',
+    );
     buffer.writeln('/// - Models/DTOs');
     buffer.writeln('/// - Repository (API layer)');
     buffer.writeln('/// - Service (business logic layer)');
@@ -1916,7 +2175,9 @@ class CodeGenerator {
     buffer.writeln('///');
     buffer.writeln('/// ## Usage in your feature module');
     buffer.writeln('///');
-    buffer.writeln('/// Copy this entire folder to `lib/$group/controller/` and import:');
+    buffer.writeln(
+      '/// Copy this entire folder to `lib/$group/controller/` and import:',
+    );
     buffer.writeln('/// ```dart');
     buffer.writeln("/// import '$_pkg/api/$group/$group.dart';");
     buffer.writeln('/// ```');
@@ -1928,21 +2189,27 @@ class CodeGenerator {
     buffer.writeln('/// ```');
     buffer.writeln('library;');
     buffer.writeln();
-    
+
     // Organize exports by category
     final modelExports = exports.where((e) => e.startsWith('models/')).toList();
-    final controllerExports = exports.where((e) => e.startsWith('controller/')).toList();
-    
+    final controllerExports = exports
+        .where((e) => e.startsWith('controller/'))
+        .toList();
+
     if (modelExports.isNotEmpty) {
-      buffer.writeln('// ── Models ──────────────────────────────────────────────────────────────');
+      buffer.writeln(
+        '// ── Models ──────────────────────────────────────────────────────────────',
+      );
       for (final e in modelExports) {
         buffer.writeln("export '$e';");
       }
       buffer.writeln();
     }
-    
+
     if (controllerExports.isNotEmpty) {
-      buffer.writeln('// ── Controller ──────────────────────────────────────────────────────────');
+      buffer.writeln(
+        '// ── Controller ──────────────────────────────────────────────────────────',
+      );
       for (final e in controllerExports) {
         buffer.writeln("export '$e';");
       }
@@ -1963,11 +2230,13 @@ class CodeGenerator {
     buffer.writeln('///');
     buffer.writeln('/// ## Available Features');
     buffer.writeln('///');
-    
+
     final sortedGroups = groupedExports.keys.toList()..sort();
     for (final group in sortedGroups) {
       final pascal = _pascalCase(group);
-      buffer.writeln('/// - **$pascal**: ${groupedExports[group]!.length} exports');
+      buffer.writeln(
+        '/// - **$pascal**: ${groupedExports[group]!.length} exports',
+      );
     }
     buffer.writeln('///');
     buffer.writeln('/// ## Quick Import');
@@ -1975,7 +2244,9 @@ class CodeGenerator {
     buffer.writeln('/// Import a specific feature:');
     buffer.writeln('/// ```dart');
     if (sortedGroups.isNotEmpty) {
-      buffer.writeln("/// import '$_pkg/api/${sortedGroups.first}/${sortedGroups.first}.dart';");
+      buffer.writeln(
+        "/// import '$_pkg/api/${sortedGroups.first}/${sortedGroups.first}.dart';",
+      );
     }
     buffer.writeln('/// ```');
     buffer.writeln('///');
@@ -2001,25 +2272,25 @@ class CodeGenerator {
   /// endpoint documentation, and copy-paste guidance.
   void _generateGroupReadmes(Map<String, List<SwaggerOperation>> groupOps) {
     print('\n── 📝 README Files ────────────────────────────────────────');
-    
+
     for (final entry in groupOps.entries) {
       final group = entry.key;
       final ops = entry.value;
-      
+
       if (skipGroups.contains(group)) continue;
-      
+
       final pascal = _pascalCase(group);
       final repoClass = '${pascal}Repository';
       final serviceClass = '${pascal}Service';
-      
+
       final buffer = StringBuffer();
-      
+
       // Header
       buffer.writeln('# $pascal API');
       buffer.writeln();
       buffer.writeln('Generated API layer for ${_humanize(group)} operations.');
       buffer.writeln();
-      
+
       // Structure
       buffer.writeln('## 📁 Structure');
       buffer.writeln();
@@ -2035,13 +2306,15 @@ class CodeGenerator {
       buffer.writeln('    └── ${_camelToSnake(group)}_service.dart');
       buffer.writeln('```');
       buffer.writeln();
-      
+
       // Available Operations
       buffer.writeln('## 🎯 Available Operations');
       buffer.writeln();
-      buffer.writeln('This feature provides ${ops.length} API operation${ops.length != 1 ? 's' : ''}:');
+      buffer.writeln(
+        'This feature provides ${ops.length} API operation${ops.length != 1 ? 's' : ''}:',
+      );
       buffer.writeln();
-      
+
       final sortedOps = ops.toList()..sort((a, b) => a.path.compareTo(b.path));
       for (final op in sortedOps) {
         final methodName = _sanitizeMethodName(_operationToMethodName(op));
@@ -2052,7 +2325,7 @@ class CodeGenerator {
         }
       }
       buffer.writeln();
-      
+
       // Quick Start
       buffer.writeln('## 🚀 Quick Start');
       buffer.writeln();
@@ -2069,7 +2342,7 @@ class CodeGenerator {
       buffer.writeln('final result = await service.someMethod();');
       buffer.writeln('```');
       buffer.writeln();
-      
+
       buffer.writeln('### Option 2: Copy to feature module');
       buffer.writeln();
       buffer.writeln('1. **Copy this folder** to `lib/$group/controller/`');
@@ -2080,16 +2353,20 @@ class CodeGenerator {
       buffer.write('   // To: import ');
       buffer.writeln("'$_pkg/$group/controller/...'");
       buffer.writeln('   ```');
-      buffer.writeln('3. **Register service** in `lib/core/di/injection_container.dart`:');
+      buffer.writeln(
+        '3. **Register service** in `lib/core/di/injection_container.dart`:',
+      );
       buffer.writeln('   ```dart');
       buffer.writeln('   getIt.registerLazySingleton($serviceClass.new);');
       buffer.writeln('   ```');
       buffer.writeln();
-      
+
       // Repository Usage
       buffer.writeln('## 🔧 Repository Usage');
       buffer.writeln();
-      buffer.writeln('The `$repoClass` extends `ApiClient` and provides direct API access:');
+      buffer.writeln(
+        'The `$repoClass` extends `ApiClient` and provides direct API access:',
+      );
       buffer.writeln();
       buffer.writeln('```dart');
       buffer.writeln('final repository = $repoClass();');
@@ -2100,11 +2377,13 @@ class CodeGenerator {
       }
       buffer.writeln('```');
       buffer.writeln();
-      
+
       // Service Usage
       buffer.writeln('## 📡 Service Usage (with State Management)');
       buffer.writeln();
-      buffer.writeln('The `$serviceClass` extends the repository and adds reactive state:');
+      buffer.writeln(
+        'The `$serviceClass` extends the repository and adds reactive state:',
+      );
       buffer.writeln();
       buffer.writeln('```dart');
       buffer.writeln('final service = $serviceClass();');
@@ -2124,15 +2403,19 @@ class CodeGenerator {
         final firstOp = ops.first;
         final methodName = _sanitizeMethodName(_operationToMethodName(firstOp));
         buffer.writeln('// Call API methods (emits state changes)');
-        buffer.writeln('await service.stream${methodName[0].toUpperCase()}${methodName.substring(1)}();');
+        buffer.writeln(
+          'await service.stream${methodName[0].toUpperCase()}${methodName.substring(1)}();',
+        );
       }
       buffer.writeln('```');
       buffer.writeln();
-      
+
       // Customization
       buffer.writeln('## ✏️ Customization');
       buffer.writeln();
-      buffer.writeln('The service file is generated as a **stub** and preserved on subsequent generations.');
+      buffer.writeln(
+        'The service file is generated as a **stub** and preserved on subsequent generations.',
+      );
       buffer.writeln('Feel free to add:');
       buffer.writeln();
       buffer.writeln('- Custom business logic');
@@ -2141,30 +2424,42 @@ class CodeGenerator {
       buffer.writeln('- Additional state management (e.g., ChangeNotifier)');
       buffer.writeln('- Error handling logic');
       buffer.writeln();
-      
+
       // Dependencies
       buffer.writeln('## 📦 Dependencies');
       buffer.writeln();
-      buffer.writeln('- `ApiClient` - Base HTTP client (from `utils/network/client.dart`)');
-      buffer.writeln('- `ApiResponse` - Response wrapper (from `utils/network/model.dart`)');
+      buffer.writeln(
+        '- `ApiClient` - Base HTTP client (from `utils/network/client.dart`)',
+      );
+      buffer.writeln(
+        '- `ApiResponse` - Response wrapper (from `utils/network/model.dart`)',
+      );
       final requiresAuth = ops.any((op) => op.requiresAuth);
       if (requiresAuth) {
-        buffer.writeln('- `AuthInterceptor` - Token injection (from `auth/controller/interceptor.dart`)');
+        buffer.writeln(
+          '- `AuthInterceptor` - Token injection (from `auth/controller/interceptor.dart`)',
+        );
       }
       buffer.writeln();
-      
+
       // Notes
       buffer.writeln('## 📌 Notes');
       buffer.writeln();
-      buffer.writeln('- **Repository**: Contains actual HTTP call implementations');
+      buffer.writeln(
+        '- **Repository**: Contains actual HTTP call implementations',
+      );
       buffer.writeln('- **Service**: Wraps repository with state management');
-      buffer.writeln('- **State**: Typed state class with loading/success/error variants');
+      buffer.writeln(
+        '- **State**: Typed state class with loading/success/error variants',
+      );
       buffer.writeln('- **Models**: Auto-generated from Swagger definitions');
       buffer.writeln();
       buffer.writeln('---');
       buffer.writeln();
-      buffer.writeln('*Generated by `swagger_codegen.dart` - DO NOT EDIT THIS FILE*');
-      
+      buffer.writeln(
+        '*Generated by `swagger_codegen.dart` - DO NOT EDIT THIS FILE*',
+      );
+
       final readmePath = '$libDir/api/$group/README.md';
       _writeFile(readmePath, buffer.toString());
       print('   📝 README: api/$group/README.md');
@@ -2188,10 +2483,13 @@ class CodeGenerator {
     for (final imp in requiredImports) {
       final packageName = imp.split("'")[1];
       if (!content.contains(packageName)) {
-        final lastImportIdx = content.lastIndexOf(RegExp(r'^import .*;\n', multiLine: true));
+        final lastImportIdx = content.lastIndexOf(
+          RegExp(r'^import .*;\n', multiLine: true),
+        );
         if (lastImportIdx != -1) {
           final endOfLastImport = content.indexOf('\n', lastImportIdx) + 1;
-          content = '${content.substring(0, endOfLastImport)}$imp\n${content.substring(endOfLastImport)}';
+          content =
+              '${content.substring(0, endOfLastImport)}$imp\n${content.substring(endOfLastImport)}';
           print('   📦 Added import: $imp');
         }
       }
@@ -2209,7 +2507,9 @@ class CodeGenerator {
 
       // Check if already manually registered (outside the generated section)
       final contentWithoutGenerated = _stripGeneratedBlock(content, marker);
-      if (RegExp('register\\w*<$serviceClass>').hasMatch(contentWithoutGenerated)) {
+      if (RegExp(
+        'register\\w*<$serviceClass>',
+      ).hasMatch(contentWithoutGenerated)) {
         continue; // Already manually registered
       }
 
@@ -2221,26 +2521,44 @@ class CodeGenerator {
     if (content.contains(marker)) {
       final markerIdx = content.indexOf(marker);
       final afterMarker = markerIdx + marker.length;
-      final nextSectionMatch = RegExp(r'\n\s+// [A-Z]').firstMatch(content.substring(afterMarker));
-      final endIdx = nextSectionMatch != null ? afterMarker + nextSectionMatch.start : afterMarker;
-      final replacement = generatedLines.isNotEmpty ? '\n${generatedLines.join('\n')}\n' : '\n';
-      content = '${content.substring(0, afterMarker)}$replacement${content.substring(endIdx)}';
+      final nextSectionMatch = RegExp(
+        r'\n\s+// [A-Z]',
+      ).firstMatch(content.substring(afterMarker));
+      final endIdx = nextSectionMatch != null
+          ? afterMarker + nextSectionMatch.start
+          : afterMarker;
+      final replacement = generatedLines.isNotEmpty
+          ? '\n${generatedLines.join('\n')}\n'
+          : '\n';
+      content =
+          '${content.substring(0, afterMarker)}$replacement${content.substring(endIdx)}';
     } else {
-      final servicesMatch = RegExp(r'(\n\s+// Services & Controllers)').firstMatch(content);
+      final servicesMatch = RegExp(
+        r'(\n\s+// Services & Controllers)',
+      ).firstMatch(content);
       if (servicesMatch != null) {
-        final block = generatedLines.isNotEmpty ? '\n    $marker\n${generatedLines.join('\n')}\n' : '\n    $marker\n';
-        content = '${content.substring(0, servicesMatch.start)}$block${content.substring(servicesMatch.start)}';
+        final block = generatedLines.isNotEmpty
+            ? '\n    $marker\n${generatedLines.join('\n')}\n'
+            : '\n    $marker\n';
+        content =
+            '${content.substring(0, servicesMatch.start)}$block${content.substring(servicesMatch.start)}';
       }
     }
 
     // Remove old generated blocks
-    const oldMarker = '// -- Generated Remote DataSources & Repositories (from swagger_codegen) --';
+    const oldMarker =
+        '// -- Generated Remote DataSources & Repositories (from swagger_codegen) --';
     if (content.contains(oldMarker)) {
       final markerIdx = content.indexOf(oldMarker);
       final afterMarker = markerIdx + oldMarker.length;
-      final nextSectionMatch = RegExp(r'\n\s+// [A-Z]').firstMatch(content.substring(afterMarker));
-      final endIdx = nextSectionMatch != null ? afterMarker + nextSectionMatch.start : afterMarker;
-      content = '${content.substring(0, markerIdx)}${content.substring(endIdx)}';
+      final nextSectionMatch = RegExp(
+        r'\n\s+// [A-Z]',
+      ).firstMatch(content.substring(afterMarker));
+      final endIdx = nextSectionMatch != null
+          ? afterMarker + nextSectionMatch.start
+          : afterMarker;
+      content =
+          '${content.substring(0, markerIdx)}${content.substring(endIdx)}';
     }
 
     final stalePattern = RegExp(
@@ -2258,8 +2576,12 @@ class CodeGenerator {
     if (!content.contains(marker)) return content;
     final markerIdx = content.indexOf(marker);
     final afterMarker = markerIdx + marker.length;
-    final nextSection = RegExp(r'\n\s+// [A-Z]').firstMatch(content.substring(afterMarker));
-    final endIdx = nextSection != null ? afterMarker + nextSection.start : afterMarker;
+    final nextSection = RegExp(
+      r'\n\s+// [A-Z]',
+    ).firstMatch(content.substring(afterMarker));
+    final endIdx = nextSection != null
+        ? afterMarker + nextSection.start
+        : afterMarker;
     return '${content.substring(0, markerIdx)}${content.substring(endIdx)}';
   }
 
@@ -2305,7 +2627,9 @@ class CodeGenerator {
     var deletedCount = 0;
     if (apiDir.existsSync()) {
       for (final entity in apiDir.listSync(recursive: true)) {
-        if (entity is File && entity.path.endsWith('.dart') && !entity.path.endsWith('_test.dart')) {
+        if (entity is File &&
+            entity.path.endsWith('.dart') &&
+            !entity.path.endsWith('_test.dart')) {
           final normalizedPath = entity.path.replaceAll(r'\', '/');
 
           if (!_writtenFiles.contains(normalizedPath)) {
@@ -2321,7 +2645,12 @@ class CodeGenerator {
       }
 
       // Remove empty directories
-      for (final entity in apiDir.listSync(recursive: true).whereType<Directory>().toList().reversed) {
+      for (final entity
+          in apiDir
+              .listSync(recursive: true)
+              .whereType<Directory>()
+              .toList()
+              .reversed) {
         if (entity.listSync().isEmpty) {
           if (!dryRun) entity.deleteSync();
           print('   🗑 Deleted empty dir: ${entity.path}');
@@ -2339,8 +2668,12 @@ class CodeGenerator {
   List<String> _buildMethodParams(SwaggerOperation op) {
     final params = <String>[];
 
-    if ((op.formParams.isNotEmpty || op.parameters.any((p) => p.location == 'body')) &&
-        (op.method == 'post' || op.method == 'put' || op.method == 'patch' || op.method == 'delete')) {
+    if ((op.formParams.isNotEmpty ||
+            op.parameters.any((p) => p.location == 'body')) &&
+        (op.method == 'post' ||
+            op.method == 'put' ||
+            op.method == 'patch' ||
+            op.method == 'delete')) {
       final requestModelName = _operationToRequestModelName(op);
       params.add('required ${requestModelName}Model request');
     }
@@ -2358,22 +2691,30 @@ class CodeGenerator {
     return params;
   }
 
-  String _determineReturnType(SwaggerOperation op, Map<String, SwaggerDefinition> responseDefs, {bool forModel = false}) {
+  String _determineReturnType(
+    SwaggerOperation op,
+    Map<String, SwaggerDefinition> responseDefs, {
+    bool forModel = false,
+  }) {
     final successRef = op.successResponseRef;
     if (successRef == null || successRef == 'SuccessResponse') return 'bool';
 
-    if (successRef.contains('Login') || successRef.contains('Register') || successRef.contains('Verify')) {
+    if (successRef.contains('Login') ||
+        successRef.contains('Register') ||
+        successRef.contains('Verify')) {
       return forModel ? 'UserModel' : 'User';
     }
 
     final responseDef = responseDefs[successRef];
     if (responseDef == null) return 'dynamic';
 
-    final payloadProp = responseDef.properties['payload'] ?? responseDef.properties['data'];
+    final payloadProp =
+        responseDef.properties['payload'] ?? responseDef.properties['data'];
     if (payloadProp == null) return 'dynamic';
 
     if (payloadProp.type == 'array' && payloadProp.itemsRef != null) {
-      final itemType = definitionRenames[payloadProp.itemsRef!] ?? payloadProp.itemsRef!;
+      final itemType =
+          definitionRenames[payloadProp.itemsRef!] ?? payloadProp.itemsRef!;
       final typeToUse = forModel ? '${itemType}Model' : itemType;
       if (responseDef.properties.containsKey('paginator')) {
         return '({List<$typeToUse> items, Paginator paginator})';
@@ -2387,21 +2728,29 @@ class CodeGenerator {
     return 'dynamic';
   }
 
-  bool _isPaginatedResponse(SwaggerOperation op, Map<String, SwaggerDefinition> responseDefs) {
+  bool _isPaginatedResponse(
+    SwaggerOperation op,
+    Map<String, SwaggerDefinition> responseDefs,
+  ) {
     final successRef = op.successResponseRef;
     if (successRef == null) return false;
-    return responseDefs[successRef]?.properties.containsKey('paginator') ?? false;
+    return responseDefs[successRef]?.properties.containsKey('paginator') ??
+        false;
   }
 
   String _operationToMethodName(SwaggerOperation op) {
     // Check overrides
-    if (methodRenames.containsKey(op.operationId)) return methodRenames[op.operationId]!;
+    if (methodRenames.containsKey(op.operationId))
+      return methodRenames[op.operationId]!;
     final pathKey = '${op.path}:${op.method}';
     if (methodRenames.containsKey(pathKey)) return methodRenames[pathKey]!;
 
     // Handle empty or missing operationId by generating from path + method
     if (op.operationId.isEmpty) {
-      final pathParts = op.path.split('/').where((s) => s.isNotEmpty && !s.startsWith('{')).toList();
+      final pathParts = op.path
+          .split('/')
+          .where((s) => s.isNotEmpty && !s.startsWith('{'))
+          .toList();
       if (pathParts.isEmpty) return '${op.method}Root';
       return _snakeToCamel('${op.method}_${pathParts.join('_')}');
     }
@@ -2413,7 +2762,14 @@ class CodeGenerator {
       if (meaningful.isEmpty) {
         name = _snakeToCamel(op.operationId);
       } else {
-        name = meaningful.first + meaningful.sublist(1).map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1)).join();
+        name =
+            meaningful.first +
+            meaningful
+                .sublist(1)
+                .map(
+                  (s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1),
+                )
+                .join();
       }
     } else {
       name = _snakeToCamel(op.operationId);
@@ -2421,20 +2777,33 @@ class CodeGenerator {
 
     // Guard against empty name
     if (name.isEmpty) {
-      final pathParts = op.path.split('/').where((s) => s.isNotEmpty && !s.startsWith('{')).toList();
+      final pathParts = op.path
+          .split('/')
+          .where((s) => s.isNotEmpty && !s.startsWith('{'))
+          .toList();
       name = _snakeToCamel('${op.method}_${pathParts.join('_')}');
     }
 
     // Prevent methods from being named exactly like common HTTP methods
     // because repository implementations extend ApiClient which already has these.
-    const forbiddenNames = {'get', 'post', 'put', 'delete', 'patch', 'update', 'remove'};
+    const forbiddenNames = {
+      'get',
+      'post',
+      'put',
+      'delete',
+      'patch',
+      'update',
+      'remove',
+    };
     if (forbiddenNames.contains(name)) {
       var prefix = parts.isNotEmpty ? parts[0] : '';
 
       // Simple singularization for common resource names
       if (prefix.endsWith('ies')) {
         prefix = '${prefix.substring(0, prefix.length - 3)}y';
-      } else if (prefix.endsWith('s') && !prefix.endsWith('ss') && !prefix.endsWith('us')) {
+      } else if (prefix.endsWith('s') &&
+          !prefix.endsWith('ss') &&
+          !prefix.endsWith('us')) {
         prefix = prefix.substring(0, prefix.length - 1);
       }
 
@@ -2454,7 +2823,8 @@ class CodeGenerator {
     return definitionRenames[name] ?? name;
   }
 
-  String _endpointConstName(SwaggerOperation op) => _sanitizeMethodName(_operationToMethodName(op));
+  String _endpointConstName(SwaggerOperation op) =>
+      _sanitizeMethodName(_operationToMethodName(op));
 
   /// Helper to check if a definition should NOT get Model suffix
   bool _shouldSkipModelSuffix(String refName) {
@@ -2477,7 +2847,9 @@ class CodeGenerator {
     if (prop.isNestedList) {
       if (prop.itemsRef != null) {
         final dartRef = definitionRenames[prop.itemsRef!] ?? prop.itemsRef!;
-        final modelRef = _shouldSkipModelSuffix(prop.itemsRef!) ? dartRef : '${dartRef}Model';
+        final modelRef = _shouldSkipModelSuffix(prop.itemsRef!)
+            ? dartRef
+            : '${dartRef}Model';
         return 'List<$modelRef>';
       }
       return 'List<Map<String, dynamic>>';
@@ -2493,9 +2865,12 @@ class CodeGenerator {
       case 'bool':
         return 'bool';
       case 'array':
-        if (prop.itemsType == 'integer' || prop.itemsType == 'int') return 'List<int>';
-        if (prop.itemsType == 'number' || prop.itemsType == 'double') return 'List<double>';
-        if (prop.itemsType == 'boolean' || prop.itemsType == 'bool') return 'List<bool>';
+        if (prop.itemsType == 'integer' || prop.itemsType == 'int')
+          return 'List<int>';
+        if (prop.itemsType == 'number' || prop.itemsType == 'double')
+          return 'List<double>';
+        if (prop.itemsType == 'boolean' || prop.itemsType == 'bool')
+          return 'List<bool>';
         return 'List<String>';
       default:
         return 'String';
@@ -2503,7 +2878,10 @@ class CodeGenerator {
   }
 
   /// Same as _fromJsonExpression but uses *Model type names for nested refs
-  String _fromJsonExpressionForModel(SwaggerProperty prop, [String? modelName]) {
+  String _fromJsonExpressionForModel(
+    SwaggerProperty prop, [
+    String? modelName,
+  ]) {
     final jsonKey = prop.name;
     var expression = "json['$jsonKey']";
 
@@ -2521,14 +2899,14 @@ class CodeGenerator {
         final dartRef = definitionRenames[prop.ref!] ?? prop.ref!;
         final isSkipped = _shouldSkipModelSuffix(prop.ref!);
         final modelRef = isSkipped ? dartRef : '${dartRef}Model';
-        
+
         // Product video and other fields might be returned as a String URL or a Map
         return "($expression is Map) ? $modelRef.fromJson($expression as Map<String, dynamic>) : ($expression is String ? $modelRef.fromJson({'fileUrl': $expression, 'url': $expression, 'path': $expression, 'id': $expression, 'name': $expression}) : $modelRef.fromJson({}))";
       } else {
         return "$expression is Map ? $expression as Map<String, dynamic> : {}";
       }
     }
-    
+
     if (prop.isNestedList) {
       if (prop.itemsRef != null) {
         final dartRef = definitionRenames[prop.itemsRef!] ?? prop.itemsRef!;
@@ -2539,7 +2917,7 @@ class CodeGenerator {
         return "($expression as List<dynamic>?)?.map((e) => e as Map<String, dynamic>).toList() ?? []";
       }
     }
-    
+
     if (prop.type == 'array') {
       if (prop.itemsType == 'integer' || prop.itemsType == 'int') {
         return "($expression as List<dynamic>?)?.map((e) => tryParseInt(e) ?? 0).toList() ?? []";
@@ -2583,7 +2961,9 @@ class CodeGenerator {
     final refDartName = definitionRenames[refName] ?? refName;
 
     if (customImportPaths.containsKey(refName)) {
-      modelImports.add(customImportPaths[refName]!.replaceAll('{pkg}', packageName));
+      modelImports.add(
+        customImportPaths[refName]!.replaceAll('{pkg}', packageName),
+      );
       return;
     }
 
@@ -2598,7 +2978,9 @@ class CodeGenerator {
     } else {
       final refGroup = _definitionToGroup[refName];
       if (refGroup != null) {
-        modelImports.add('$_pkg/api/$refGroup/models/${_camelToSnake(refDartName)}_model.dart');
+        modelImports.add(
+          '$_pkg/api/$refGroup/models/${_camelToSnake(refDartName)}_model.dart',
+        );
       }
     }
   }
@@ -2649,14 +3031,23 @@ const _dartReservedKeywords = <String>{
 
 /// Method names generated on every model class — field names must not collide.
 const _reservedMethodNames = <String>{
-  'toJson', 'fromJson', 'copyWith', 'toString', 'hashCode',
-  'noSuchMethod', 'runtimeType',
+  'toJson',
+  'fromJson',
+  'copyWith',
+  'toString',
+  'hashCode',
+  'noSuchMethod',
+  'runtimeType',
 };
 
 String _snakeToCamel(String input) {
   final parts = input.split(RegExp(r'[_\-.]'));
   if (parts.isEmpty) return input;
-  return parts.first + parts.sublist(1).map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1)).join();
+  return parts.first +
+      parts
+          .sublist(1)
+          .map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1))
+          .join();
 }
 
 /// Produce a valid, collision-free Dart field name from any Swagger name.
@@ -2704,13 +3095,21 @@ String _safeDartName(String raw) {
 /// Strip characters that are invalid in Dart identifiers.
 /// Replaces special chars with spaces, then collapses whitespace.
 String _sanitizeForIdentifier(String input) {
-  return input.replaceAll(RegExp(r'[^a-zA-Z0-9_\s\-]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  return input
+      .replaceAll(RegExp(r'[^a-zA-Z0-9_\s\-]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
 }
 
 String _camelToSnake(String input) {
   // Strip any remaining special chars first
   final cleaned = input.replaceAll(RegExp('[^a-zA-Z0-9_]'), '');
-  return cleaned.replaceAllMapped(RegExp('([A-Z])'), (m) => '_${m.group(1)!.toLowerCase()}').replaceAll(RegExp('^_'), '');
+  return cleaned
+      .replaceAllMapped(
+        RegExp('([A-Z])'),
+        (m) => '_${m.group(1)!.toLowerCase()}',
+      )
+      .replaceAll(RegExp('^_'), '');
 }
 
 String _pascalCase(String input) {
@@ -2726,7 +3125,10 @@ String _pascalCase(String input) {
 }
 
 String _humanize(String input) {
-  return input.split('_').map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1)).join(' ');
+  return input
+      .split('_')
+      .map((s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1))
+      .join(' ');
 }
 
 // _dartFieldTypeForModel has been moved into CodeGenerator class
