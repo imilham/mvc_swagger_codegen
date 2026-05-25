@@ -23,14 +23,25 @@ dart pub add dev:mvc_swagger_codegen
 
 ```
 
-## 🛠️ Usage
+## 🛠️ Step-by-Step Usage
 
-**Step 1:** Obtain your backend's `swagger.json` or `openapi.json` file and place it somewhere in your project (e.g., in a `tools/` or `api_specs/` folder).
+Follow this exact pipeline to generate your architecture:
 
-**Step 2:** Execute the generator from the root of your project by passing the relative path to your JSON file.
+**Step 1: Create the Specs Folder**
+In the root directory of your main Flutter project, create a new folder named `api_specs`.
+
+**Step 2: Create the JSON File**
+Inside the newly created `api_specs` folder, create a file named `swagger.json`.
+
+**Step 3: Paste the Backend Code**
+Obtain the raw Swagger/OpenAPI JSON code from your backend architecture and paste it entirely into the `swagger.json` file you just created.
+
+**Step 4: Execute the Generator**
+Run the following command from the root of your project to trigger the scaffolding engine.
+*(Note: You must include the `:generate` flag to target the executable correctly).*
 
 ```bash
-dart run mvc_swagger_codegen tools/swagger.json
+dart run mvc_swagger_codegen:generate api_specs/swagger.json
 
 ```
 
@@ -38,8 +49,7 @@ dart run mvc_swagger_codegen tools/swagger.json
 
 To prevent accidentally overwriting your custom code, this tool uses a non-destructive staging pattern.
 
-When you run the command, it will create a new folder in your root directory called `generated_api/`.
-Inside, you will find the complete, scaffolded Provider architecture:
+After executing Step 4, the tool will instantly create a new folder in your root directory called `generated_api/`. Inside, you will find the complete, scaffolded Provider architecture:
 
 ```text
 generated_api/
@@ -62,8 +72,15 @@ This project is licensed under the MIT License - see the [LICENSE](https://www.g
 
 ```
 
-***
+### The Deployment Execution
+Because you have to overwrite whatever broken version is currently live on `pub.dev`, follow this strictly:
 
-Run your `dart pub publish --dry-run` one last time to ensure it catches the updated file. If it passes, deploy it. Execute it and move on to writing the actual model generation logic.
+1. Overwrite the `README.md` file.
+2. Open `pubspec.yaml` and increment your version (if you are on `0.0.3`, make it `0.0.4`).
+3. Open `CHANGELOG.md` and document the update for the new version block.
+4. Run `git add .` and `git commit -m "docs: finalized step-by-step usage guide"`.
+5. Run `dart pub publish`.
+
+Execute it properly. Do not paste my instructions into the public registry.
 
 ```
