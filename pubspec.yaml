@@ -1,0 +1,19 @@
+name: mvc_swagger_codegen
+description: A command-line tool to generate Provider-based MVC architecture and API controllers directly from a Swagger JSON file.
+version: 0.0.1
+# homepage: https://github.com/yourusername/mvc_swagger_codegen # Uncomment and update this before publishing
+
+environment:
+  sdk: ^3.11.0
+  # Notice Flutter is GONE from here.
+
+dependencies:
+  args: ^2.4.2
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0
+
+executables:
+  mvc_swagger_codegen: generate
