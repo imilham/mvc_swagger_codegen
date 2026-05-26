@@ -1,86 +1,71 @@
-```markdown
 # mvc_swagger_codegen
 
-A powerful, pure-Dart command-line tool designed to instantly scaffold Provider-based MVC architecture and API controllers directly from a standard `swagger.json` (OpenAPI) specification. 
+`mvc_swagger_codegen` is a pure-Dart command-line tool that scaffolds Provider-friendly MVC code from a Swagger/OpenAPI JSON document.
 
-Stop writing boilerplate. Let the generator enforce clean architecture and eliminate technical debt.
+It is designed to reduce repetitive boilerplate while keeping the generated output easy to review, copy, and adapt inside your app.
 
-## 🚀 Features
+## Features
 
-* **Zero-Dependency CLI:** Runs entirely on Dart. Does not require the heavy Flutter SDK to execute.
-* **Provider MVC Architecture:** Automatically generates Models, Views, and Controllers tailored for `ChangeNotifier` and the Provider ecosystem.
-* **Strict Typing:** Parses OpenAPI specifications to generate mathematically sound Dart models.
-* **Rapid Scaffolding:** Turns massive backend API specs into clean, structured Dart files in milliseconds.
+- Pure Dart CLI with no Flutter SDK required to run the generator.
+- Generates repositories, services, models, and controller-friendly state helpers.
+- Supports typed model generation from OpenAPI schemas.
+- Produces organized output that can be moved into an existing app structure.
+- Keeps generated service state streams disposable and lifecycle-safe.
 
-## 📦 Installation
+## Installation
 
-This tool is a development dependency. **Do not** install this in your standard dependencies, or you will bloat your production build.
-
-Run this command in the root of your Flutter project:
+Add the package as a development dependency in the project that will run the generator:
 
 ```bash
 dart pub add dev:mvc_swagger_codegen
-
 ```
 
-## 🛠️ Step-by-Step Usage
+You can also add it manually to `dev_dependencies` in `pubspec.yaml`.
 
-Follow this exact pipeline to generate your architecture:
+## Usage
 
-**Step 1: Create the Specs Folder**
-In the root directory of your main Flutter project, create a new folder named `api_specs`.
-
-**Step 2: Create the JSON File**
-Inside the newly created `api_specs` folder, create a file named `swagger.json`.
-
-**Step 3: Paste the Backend Code**
-Obtain the raw Swagger/OpenAPI JSON code from your backend architecture and paste it entirely into the `swagger.json` file you just created.
-
-**Step 4: Execute the Generator**
-Run the following command from the root of your project to trigger the scaffolding engine.
-*(Note: You must include the `:generate` flag to target the executable correctly).*
+1. Place your Swagger/OpenAPI JSON file in your project, for example at `api_specs/swagger.json`.
+2. Run the generator from the root of the project that contains the spec file:
 
 ```bash
 dart run mvc_swagger_codegen:generate api_specs/swagger.json
-
 ```
 
-## 📂 The "Staging" Workflow
+The generator reads the specification and writes the scaffolded output into the generated API folder used by the tool.
 
-To prevent accidentally overwriting your custom code, this tool uses a non-destructive staging pattern.
+## Generated Output
 
-After executing Step 4, the tool will instantly create a new folder in your root directory called `generated_api/`. Inside, you will find the complete, scaffolded Provider architecture:
+The generated code is organized to separate responsibilities clearly:
+
+- `models/` for data classes
+- `controllers/` for UI-facing state and actions
+- `services/` for repository and API access logic
+
+The service layer includes a state stream and a `dispose()` method so stream resources are closed cleanly when the service is no longer needed.
+
+## Example Workflow
 
 ```text
-generated_api/
- ├── models/
- ├── controllers/
- └── services/
-
+your_project/
+├── api_specs/
+│   └── swagger.json
+└── generated_api/
+	├── models/
+	├── controllers/
+	└── services/
 ```
 
-**Your Job:** Review the generated files, take exactly what you need, and move them into your main `lib/` architecture. This gives you the benefit of instant boilerplate without sacrificing control over your project structure.
+Review the generated files, move the pieces you want into your app, and keep the parts that fit your architecture.
 
-## ⚠️ Requirements
+## Requirements
 
-* Dart SDK `^3.11.0`
-* A valid `swagger.json` (OpenAPI 3.0+) file.
+- Dart SDK `^3.11.0`
+- A valid OpenAPI 3.0+ `swagger.json` file
 
-## 📄 License
+## Versioning
 
-This project is licensed under the MIT License - see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+This package follows standard semantic versioning. Check the [CHANGELOG.md](CHANGELOG.md) for release notes.
 
-```
+## License
 
-### The Deployment Execution
-Because you have to overwrite whatever broken version is currently live on `pub.dev`, follow this strictly:
-
-1. Overwrite the `README.md` file.
-2. Open `pubspec.yaml` and increment your version (if you are on `0.0.3`, make it `0.0.4`).
-3. Open `CHANGELOG.md` and document the update for the new version block.
-4. Run `git add .` and `git commit -m "docs: finalized step-by-step usage guide"`.
-5. Run `dart pub publish`.
-
-Execute it properly. Do not paste my instructions into the public registry.
-
-```
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

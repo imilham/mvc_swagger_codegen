@@ -1,3 +1,14 @@
+## 0.0.6
+
+- Bumped the package version to match the current release.
+- Refined package documentation and public API notes for pub.dev scoring.
+
+## 0.0.5
+
+- Reworked the package README to present a cleaner pub.dev landing page.
+- Added clearer installation, usage, and generated output sections.
+- Documented the disposable service lifecycle in the published examples.
+
 ## 0.0.4
 
 - Generated service classes now include `dispose()` to close the state stream controller.
