@@ -1566,6 +1566,12 @@ class CodeGenerator {
       '  Stream<$stateClassName> get onStateChanges => _stateController.stream;',
     );
     buffer.writeln();
+    buffer.writeln('  @override');
+    buffer.writeln('  void dispose() {');
+    buffer.writeln('    _stateController.close();');
+    buffer.writeln('    super.dispose();');
+    buffer.writeln('  }');
+    buffer.writeln();
 
     // Generate a wrapped method for each operation
     for (final op in ops) {
@@ -2416,6 +2422,8 @@ class CodeGenerator {
           'await service.stream${methodName[0].toUpperCase()}${methodName.substring(1)}();',
         );
       }
+      buffer.writeln();
+      buffer.writeln('service.dispose();');
       buffer.writeln('```');
       buffer.writeln();
 

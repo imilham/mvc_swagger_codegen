@@ -1,3 +1,8 @@
+## 0.0.4
+
+- Generated service classes now include `dispose()` to close the state stream controller.
+- Added cleanup guidance to the generated service usage example.
+
 ## 0.0.3
 
 - Added stronger static analysis compatibility by aligning lint setup for a pure Dart package.
